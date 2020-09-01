@@ -25,7 +25,7 @@ results_file = 'results.txt'
 from torch.utils.tensorboard import SummaryWriter
 tb_writer = SummaryWriter()
 
-# Hyperparameters (j-series, 50.5 mAP yolov3-320) evolved by @ktian08 https://github.com/ultralytics/yolov3/issues/310
+# 这套超参yolov3 320*320 map在coco上能到0.5，可根据数据集调节giou、cls、cls_pw、iou_t、lr0、fl_gamma
 hyp = {'giou': 1.582,  # giou loss gain
        'cls': 27.76,  # cls loss gain  (CE=~1.0, uCE=~20)
        'cls_pw': 1.446,  # cls BCELoss positive_weight
@@ -202,7 +202,7 @@ def train():
 
 
     def adjust_learning_rate(optimizer, gamma, epoch, iteration, epoch_size):
-        """调整学习率进行warm up和学习率衰减
+        """调整学习率进行warm up和学习率衰减，可根据数据集自行设置隔多少epoch衰减学习率
         """
         step_index = 0
         if epoch < 6:
@@ -231,18 +231,6 @@ def train():
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
         return lr
-
-
-    # # Plot lr schedule
-    # y = []
-    # for _ in range(epochs):
-    #     scheduler.step()
-    #     y.append(optimizer.param_groups[0]['lr'])
-    # plt.plot(y, label='LambdaLR')
-    # plt.xlabel('epoch')
-    # plt.ylabel('LR')
-    # plt.tight_layout()
-    # plt.savefig('LR.png', dpi=300)
 
     # Mixed precision training https://github.com/NVIDIA/apex
     if mixed_precision:
@@ -341,17 +329,6 @@ def train():
                 plot_images(imgs=imgs, targets=targets, paths=paths, fname=fname)
                 if tb_writer:
                     tb_writer.add_image(fname, cv2.imread(fname)[:, :, ::-1], dataformats='HWC')
-
-            # Hyperparameter burn-in
-            # n_burn = nb - 1  # min(nb // 5 + 1, 1000)  # number of burn-in batches
-            # if ni <= n_burn:
-            #     for m in model.named_modules():
-            #         if m[0].endswith('BatchNorm2d'):
-            #             m[1].momentum = 1 - i / n_burn * 0.99  # BatchNorm2d momentum falls from 1 - 0.01
-            #     g = (i / n_burn) ** 4  # gain rises from 0 - 1
-            #     for x in optimizer.param_groups:
-            #         x['lr'] = hyp['lr0'] * g
-            #         x['weight_decay'] = hyp['weight_decay'] * g
 
             # Run model
             pred = model(imgs)
